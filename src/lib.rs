@@ -17,7 +17,6 @@ fn jni_export_internal(args: TokenStream, input: TokenStream) -> TokenStream {
         Ok(mut function) => {
             let mut func_name = String::from("Java_");
             func_name.push_str(&*args.to_string().replace(".", "_"));
-            println!("{func_name}");
 
             function.attrs.push(parse_quote! {
                 #[allow(non_snake_case)]
