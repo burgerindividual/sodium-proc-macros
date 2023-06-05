@@ -5,7 +5,6 @@ use proc_macro::TokenStream;
 use proc_macro2::Ident;
 
 use quote::ToTokens;
-use syn::__private::TokenStream2;
 use syn::{parse_quote, Item, ItemFn, ItemMod};
 
 #[proc_macro_attribute]
@@ -18,6 +17,7 @@ fn jni_export_internal(args: TokenStream, input: TokenStream) -> TokenStream {
         Ok(mut function) => {
             let mut func_name = String::from("Java_");
             func_name.push_str(&*args.to_string().replace(".", "_"));
+            println!("{func_name}");
 
             function.attrs.push(parse_quote! {
                 #[allow(non_snake_case)]
@@ -50,22 +50,14 @@ fn jni_export_internal(args: TokenStream, input: TokenStream) -> TokenStream {
             function.to_token_stream().into()
         }
         Err(_) => match syn::parse::<ItemMod>(input.clone()) {
-            Ok(mut module) => {
-                module.attrs.push(parse_quote! {
-                    #[allow(non_snake_case)]
-                });
-                module.attrs.push(parse_quote! {
-                    #[no_mangle]
-                });
-
-                for item in &mut (module.content.unwrap().1) {
+            Ok(ref mut module) => {
+                for item in &mut (module.content.as_mut().unwrap().1) {
                     if let Item::Fn(function) = item {
-                        let mut fn_args = args.clone();
-                        (*function).sig.ident.to_tokens(&mut fn_args.into());
+                        let new_fn_attrib = format!("{}.{}", args, (*function).sig.ident);
 
                         *function = syn::parse::<ItemFn>(jni_export_internal(
-                            fn_args,
-                            function.into_token_stream().into(),
+                            new_fn_attrib.parse().unwrap(),
+                            function.to_token_stream().into(),
                         ))
                         .unwrap();
                     }
